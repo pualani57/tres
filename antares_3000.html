@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antares: Our Constellation</title>
+  <style>
+    :root {
+      --bg-1: #050816;
+      --bg-2: #0d1330;
+      --text: #eef2ff;
+      --muted: #b8c0e4;
+      --card: rgba(14, 19, 48, 0.72);
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(167, 139, 250, 0.12), transparent 22%),
+        radial-gradient(circle at 75% 15%, rgba(129, 140, 248, 0.12), transparent 22%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1));
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      background-image:
+        radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,.7) 50%, transparent 55%),
+        radial-gradient(1.5px 1.5px at 30% 75%, rgba(255,255,255,.55) 50%, transparent 55%),
+        radial-gradient(2px 2px at 70% 35%, rgba(255,255,255,.8) 50%, transparent 55%),
+        radial-gradient(1.5px 1.5px at 90% 10%, rgba(255,255,255,.5) 50%, transparent 55%),
+        radial-gradient(2px 2px at 85% 65%, rgba(255,255,255,.65) 50%, transparent 55%),
+        radial-gradient(1.5px 1.5px at 55% 90%, rgba(255,255,255,.5) 50%, transparent 55%),
+        radial-gradient(1.8px 1.8px at 15% 55%, rgba(255,255,255,.5) 50%, transparent 55%);
+      animation: drift 24s linear infinite;
+      opacity: 0.8;
+    }
+
+    body::after {
+      background: radial-gradient(circle at center, transparent 0, rgba(0,0,0,.18) 65%, rgba(0,0,0,.42) 100%);
+    }
+
+    @keyframes drift {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .opening {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .opening-content {
+      max-width: 720px;
+      animation: fadeRise 1.4s ease both;
+    }
+
+    .eyebrow {
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-bottom: 1rem;
+    }
+
+    .opening h1 {
+      font-size: clamp(2.3rem, 6vw, 4.5rem);
+      line-height: 1.08;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .opening h1 span {
+      color: #d6cbff;
+      text-shadow: 0 0 18px rgba(167, 139, 250, 0.4);
+    }
+
+    .opening p {
+      max-width: 560px;
+      margin: 0 auto 1.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1rem;
+    }
+
+    .btn {
+      border: 1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+      color: var(--text);
+      padding: 0.95rem 1.3rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.96rem;
+      transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+      box-shadow: 0 8px 28px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 34px rgba(0,0,0,.32);
+      background: linear-gradient(180deg, rgba(167,139,250,.22), rgba(255,255,255,.06));
+    }
+
+    .map-screen {
+      padding: 1.25rem;
+    }
+
+    .hud {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      z-index: 4;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 1rem 1.1rem;
+    }
+
+    .title-block h2 {
+      font-size: 1.05rem;
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+
+    .title-block p,
+    .progress-text,
+    .hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .progress-card {
+      width: min(280px, 42vw);
+    }
+
+    .progress-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.55rem;
+      gap: 1rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(167,139,250,.65), rgba(214,203,255,.95));
+      transition: width .45s ease;
+      box-shadow: 0 0 14px rgba(167,139,250,.35);
+    }
+
+    .sky {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+    }
+
+    .constellation-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .line {
+      stroke: rgba(214, 203, 255, 0.85);
+      stroke-width: 2;
+      stroke-linecap: round;
+      opacity: 0;
+      filter: drop-shadow(0 0 6px rgba(167,139,250,.5));
+      transition: opacity 0.6s ease;
+    }
+
+    .line.visible {
+      opacity: 1;
+    }
+
+    .star {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(226,231,255,.92) 40%, rgba(167,139,250,.85) 75%, rgba(167,139,250,0) 100%);
+      box-shadow: 0 0 16px rgba(255,255,255,.55), 0 0 28px rgba(167,139,250,.35);
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      transition: transform .25s ease, box-shadow .25s ease, opacity .4s ease;
+      animation: pulse 3.2s ease-in-out infinite;
+    }
+
+    .star::after {
+      content: attr(data-label);
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      color: rgba(238, 242, 255, 0.82);
+      font-size: 0.76rem;
+      opacity: 0;
+      transition: opacity .25s ease;
+      pointer-events: none;
+    }
+
+    .star:hover,
+    .star:focus-visible {
+      transform: translate(-50%, -50%) scale(1.18);
+      box-shadow: 0 0 18px rgba(255,255,255,.8), 0 0 34px rgba(167,139,250,.5);
+      outline: none;
+    }
+
+    .star:hover::after,
+    .star:focus-visible::after {
+      opacity: 1;
+    }
+
+    .star.locked {
+      opacity: 0.3;
+      filter: grayscale(0.1);
+      cursor: not-allowed;
+      animation: pulseDim 3.8s ease-in-out infinite;
+    }
+
+    .star.visited {
+      box-shadow: 0 0 22px rgba(255,255,255,.9), 0 0 42px rgba(167,139,250,.6);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+    @keyframes pulseDim {
+      0%, 100% { transform: translate(-50%, -50%) scale(.98); }
+      50% { transform: translate(-50%, -50%) scale(1.04); }
+    }
+
+    .modal-backdrop,
+    .final-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 22, 0.52);
+      backdrop-filter: blur(12px);
+      display: grid;
+      place-items: center;
+      z-index: 8;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .35s ease, visibility .35s ease;
+      padding: 1rem;
+    }
+
+    .modal-backdrop.show,
+    .final-backdrop.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal,
+    .final-card {
+      width: min(720px, 100%);
+      background: linear-gradient(180deg, rgba(14,19,48,.94), rgba(9,14,35,.92));
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      transform: translateY(16px) scale(.98);
+      transition: transform .35s ease;
+    }
+
+    .modal-backdrop.show .modal,
+    .final-backdrop.show .final-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header,
+    .final-header {
+      padding: 1.3rem 1.4rem 0.75rem;
+    }
+
+    .memory-kicker,
+    .final-kicker {
+      color: #d7d0ff;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.76rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .modal-title,
+    .final-title {
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      line-height: 1.15;
+      margin-bottom: 0.35rem;
+    }
+
+    .modal-body,
+    .final-body {
+      padding: 0 1.4rem 1.4rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .memory-text,
+    .final-text {
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 1rem;
+    }
+
+    .memory-photo,
+    .final-photo {
+      width: 100%;
+      min-height: 180px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.08);
+      background:
+        linear-gradient(135deg, rgba(167,139,250,.15), rgba(255,255,255,.03)),
+        rgba(255,255,255,.03);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 1.2rem;
+      color: rgba(238,242,255,.7);
+      font-size: 0.92rem;
+    }
+
+    .memory-photo img,
+    .final-photo img {
+      width: 100%;
+      max-height: 320px;
+      object-fit: cover;
+      border-radius: 18px;
+      display: block;
+    }
+
+    .memory-audio {
+      width: 100%;
+      min-height: 76px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      padding: 0.95rem 1rem;
+      display: grid;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .audio-placeholder {
+      color: rgba(238,242,255,.7);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .memory-audio audio,
+    .memory-audio video {
+      width: 100%;
+    }
+
+    .memory-audio video {
+      border-radius: 12px;
+    }
+
+    .modal-actions,
+    .final-actions {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      padding-top: 0.2rem;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,.06);
+    }
+
+    .close-x {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .credits {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      color: rgba(238,242,255,.52);
+      font-size: 0.8rem;
+      text-align: center;
+      pointer-events: none;
+      padding: 0 1rem;
+    }
+
+    @keyframes fadeRise {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hud {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .progress-card {
+        width: 100%;
+      }
+
+      .title-block h2 {
+        font-size: 1rem;
+      }
+
+      .opening p,
+      .memory-text,
+      .final-text {
+        font-size: 0.96rem;
+      }
+
+      .star::after {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="screen opening active" id="openingScreen">
+    <div class="opening-content">
+      <div class="eyebrow">For Tres</div>
+      <h1>Before I knew you, <span>antares was just a star.</span></h1>
+      <p>
+        Then I met you, <strong>SUGAR SWEET</strong>. And now I see you in everything that I love. This is a small map of the memories that made you feel
+        like a constellation in my life.
+      </p>
+      <button class="btn" id="startBtn">Tap to Begin </button>
+    </div>
+  </section>
+
+  <section class="screen map-screen" id="mapScreen">
+    <div class="hud">
+      <div class="panel title-block">
+        <h2>Scorpius: The stars that were in the night sky when you were born.</h2>
+        <p>Click each star to uncover a memory. The full constellation appears when every memory is found.</p>
+      </div>
+
+      <div class="panel progress-card">
+        <div class="progress-top">
+          <strong>Constellation Progress</strong>
+          <span class="progress-text" id="progressText">0 / 7</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="hint" id="hintText" style="margin-top:0.65rem;">The next memory will brighten the sky a little more.</p>
+      </div>
+    </div>
+
+    <div class="sky" id="sky">
+      <svg class="constellation-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <line id="line-1" class="line" x1="12" y1="66" x2="20" y2="66"></line>
+        <line id="line-2" class="line" x1="12" y1="66" x2="18" y2="74"></line>
+        <line id="line-3" class="line" x1="18" y1="74" x2="26" y2="82"></line>
+        <line id="line-4" class="line" x1="26" y1="82" x2="37" y2="82"></line>
+        <line id="line-5" class="line" x1="37" y1="82" x2="47" y2="78"></line>
+        <line id="line-6" class="line" x1="47" y1="78" x2="51" y2="56"></line>
+      </svg>
+
+      <button class="star" data-id="1" data-label="Moon River & Me" style="left:12%; top:66%;"></button>
+      <button class="star locked" data-id="2" data-label="Black & Yellow" style="left:20%; top:66%;"></button>
+      <button class="star locked" data-id="3" data-label="Health Clearance" style="left:18%; top:74%;"></button>
+      <button class="star locked" data-id="4" data-label="Ferris Wheel Kisses" style="left:26%; top:82%;"></button>
+      <button class="star locked" data-id="5" data-label="The Tree House" style="left:37%; top:82%;"></button>
+      <button class="star locked" data-id="6" data-label="Still Choosing You" style="left:47%; top:78%;"></button>
+      <button class="star locked" data-id="7" data-label="Tres" style="left:51%; top:56%;"></button>
+    </div>
+
+    <div class="credits">Built for My Sugar Sweet</div>
+  </section>
+
+  <div class="modal-backdrop" id="memoryModalBackdrop">
+    <article class="modal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle">
+      <button class="close-x" id="closeModalBtn" aria-label="Close memory">✕</button>
+      <div class="modal-header">
+        <div class="memory-kicker" id="memoryKicker">Memory</div>
+        <h3 class="modal-title" id="memoryTitle">Title</h3>
+      </div>
+      <div class="modal-body">
+        <p class="memory-text" id="memoryText"></p>
+        <div class="memory-photo" id="memoryPhoto">Add your image path in the memories object and it will appear here automatically.</div>
+        <div class="memory-audio" id="memoryAudioWrap">
+          <div class="audio-placeholder" id="audioPlaceholder">Add your audio path in the memories object and it will appear here automatically.</div>
+          <audio id="memoryAudio" class="hidden" controls preload="none"></audio>
+          <video id="memoryVideo" class="hidden" controls preload="none"></video>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" id="closeMemoryAction">Close</button>
+          <button class="btn btn-secondary" id="nextHintBtn">What changed in the sky?</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="final-backdrop" id="finalBackdrop">
+    <article class="final-card" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
+      <button class="close-x" id="closeFinalBtn" aria-label="Close final message">✕</button>
+      <div class="final-header">
+        <div class="final-kicker">Final Reveal</div>
+        <h3 class="final-title" id="finalTitle">Antares... but to me, Tres.</h3>
+      </div>
+      <div class="final-body">
+        <p class="final-text">
+         
+"u will never fully understand
+how deeply my heart feels 4 u
+i worry that we'll grow apart
+and i'll end up losing u
+
+
+u bring me 2 climax without sex
+and u do it all with regal grace
+u r my heart in human form
+a friend i could never replace"
+        </p>
+        <div class="final-photo" id="finalPhoto">You can place your favorite photo together here.</div>
+        <div class="final-actions">
+          <button class="btn" id="restartBtn">Watch the Sky Again</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <script>
+    const memories = {
+      1: {
+        kicker: "Memory One",
+        title: "Moon River & Me",
+        text: "When I didn't speak to you the first time you made me upset so you came all the way to my house to buy me Ice Cream.",
+        audio: "./Frank Ocean - Moon River.mp3",
+      },
+      2: {
+        kicker: "Memory Two",
+        title: "Black & Yellow",
+        text: "When you brought me a bottle of water and some oranges (that you peeled for me because you are the sweetest) on a hot day when I was going for my checkups.",
+        audio: "./New West - Those Eyes (Home Session).mp3",
+        
+      },
+        
+      3: {
+        kicker: "Memory Three",
+        title: "Health Clearance",
+        text: "When you met mom for the first time and tried to lie about having a health clearance. And that was also when I first saw you nervouse and it broke my heart in the most adorable way.",
+        audio: "./James Arthur - September (Lyric Video).mp3",
+      
+      },
+      4: {
+        kicker: "Memory Four",
+        title: "Ferris Wheel Kisses",
+        text: "The first time that you kissed me (without my consent).",
+        audio: "./The Stranglers - Golden Brown.mp3",
+      
+      },
+      5: {
+        kicker: "Memory Five",
+        title: "The Tree House",
+        text: "The day I saw you after what felt like forever. I was so nervous but the moment I saw you, it felt like coming home. I will never forget how safe and warm you made me feel that day.",
+        audio: "./The 1975 - About You (Official).mp3",
+        
+      },
+     
+    };
+
+    const totalMemories = Object.keys(memories).length;
+    const finalPhotoPath = './final.jpeg';
+    const unlocked = new Set();
+    let currentMemoryId = null;
+
+    const openingScreen = document.getElementById('openingScreen');
+    const mapScreen = document.getElementById('mapScreen');
+    const startBtn = document.getElementById('startBtn');
+
+    const stars = [...document.querySelectorAll('.star')];
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const hintText = document.getElementById('hintText');
+
+    const memoryModalBackdrop = document.getElementById('memoryModalBackdrop');
+    const memoryKicker = document.getElementById('memoryKicker');
+    const memoryTitle = document.getElementById('memoryTitle');
+    const memoryText = document.getElementById('memoryText');
+    const memoryPhoto = document.getElementById('memoryPhoto');
+    const memoryAudio = document.getElementById('memoryAudio');
+    const memoryVideo = document.getElementById('memoryVideo');
+    const memoryAudioWrap = document.getElementById('memoryAudioWrap');
+    const audioPlaceholder = document.getElementById('audioPlaceholder');
+    const finalPhoto = document.getElementById('finalPhoto');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const closeMemoryAction = document.getElementById('closeMemoryAction');
+    const nextHintBtn = document.getElementById('nextHintBtn');
+
+    const finalBackdrop = document.getElementById('finalBackdrop');
+    const closeFinalBtn = document.getElementById('closeFinalBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    function resetMedia() {
+      memoryAudio.pause();
+      memoryAudio.removeAttribute('src');
+      memoryAudio.load();
+      memoryAudio.classList.add('hidden');
+
+      memoryVideo.pause();
+      memoryVideo.removeAttribute('src');
+      memoryVideo.load();
+      memoryVideo.classList.add('hidden');
+
+      audioPlaceholder.classList.remove('hidden');
+      audioPlaceholder.textContent = 'Add your audio or video path in the memories object and it will appear here automatically.';
+      memoryAudioWrap.classList.add('hidden');
+      memoryPhoto.classList.add('hidden');
+      memoryPhoto.innerHTML = '';
+    }
+
+    function setPhoto(memory) {
+      if (memory.image && memory.image.trim() !== '') {
+        memoryPhoto.innerHTML = `<img src="C:\Users\Administrator\OneDrive\Documents\antares\final.jpeg" alt="${memory.title}">`;
+        memoryPhoto.classList.remove('hidden');
+        const image = memoryPhoto.querySelector('img');
+        image.onerror = () => {
+          memoryPhoto.textContent = 'Image not found. Check the file path in the memories object.';
+          memoryPhoto.classList.remove('hidden');
+        };
+      } else {
+        memoryPhoto.classList.add('hidden');
+        memoryPhoto.innerHTML = '';
+      }
+    }
+
+    function setFinalPhoto() {
+      if (finalPhotoPath && finalPhotoPath.trim() !== '') {
+        finalPhoto.innerHTML = `<img src="${finalPhotoPath}" alt="Final photo">`;
+        const image = finalPhoto.querySelector('img');
+        image.onerror = () => {
+          finalPhoto.textContent = 'Final photo not found. Check the finalPhotoPath variable.';
+        };
+      } else {
+        finalPhoto.textContent = 'You can place your favorite photo together here.';
+      }
+    }
+
+    function setAudio(memory) {
+      const hasAudio = memory.audio && memory.audio.trim() !== '';
+      const hasVideo = memory.video && memory.video.trim() !== '';
+      const hasMedia = hasAudio || hasVideo;
+
+      if (hasAudio) {
+        memoryAudio.src = memory.audio;
+        memoryAudio.classList.remove('hidden');
+        memoryAudio.onerror = () => {
+          memoryAudio.classList.add('hidden');
+          if (!hasVideo) {
+            audioPlaceholder.classList.remove('hidden');
+          }
+        };
+      } else {
+        memoryAudio.classList.add('hidden');
+        memoryAudio.removeAttribute('src');
+      }
+
+      if (hasVideo) {
+        memoryVideo.src = memory.video;
+        memoryVideo.classList.remove('hidden');
+        memoryVideo.onerror = () => {
+          memoryVideo.classList.add('hidden');
+          if (!hasAudio) {
+            audioPlaceholder.classList.remove('hidden');
+          }
+        };
+      } else {
+        memoryVideo.classList.add('hidden');
+        memoryVideo.removeAttribute('src');
+      }
+
+      memoryAudioWrap.classList.toggle('hidden', !hasMedia);
+      audioPlaceholder.classList.toggle('hidden', hasMedia);
+    }
+
+    function setVideo(memory) {
+      if (memory.video && memory.video.trim() !== '') {
+        memoryVideo.src = memory.video;
+        memoryVideo.classList.remove('hidden');
+        memoryVideo.onerror = () => {
+          memoryVideo.classList.add('hidden');
+        };
+      } else {
+        memoryVideo.classList.add('hidden');
+        memoryVideo.removeAttribute('src');
+      }
+    }
+
+    function markVisited(id) {
+      const star = stars.find((s) => Number(s.dataset.id) === id);
+      if (star) {
+        star.classList.add('visited');
+      }
+    }
+
+    function revealAvailableStars() {
+      stars.forEach((star) => {
+        const id = Number(star.dataset.id);
+        if (id === 1 || unlocked.has(id - 1) || unlocked.has(id)) {
+          star.classList.remove('locked');
+        } else {
+          star.classList.add('locked');
+        }
+      });
+    }
+
+    function updateProgress() {
+      progressText.textContent = `${unlocked.size} / ${totalMemories}`;
+      progressFill.style.width = `${(unlocked.size / totalMemories) * 100}%`;
+
+      if (unlocked.size === 0) {
+        hintText.textContent = 'The next memory will brighten the sky a little more.';
+      } else if (unlocked.size < totalMemories) {
+        hintText.textContent = `You have uncovered ${unlocked.size} ${unlocked.size === 1 ? 'memory' : 'memories'}. Keep following the light.`;
+      } else {
+        hintText.textContent = 'Every star is glowing now.';
+      }
+    }
+
+    function revealLines() {
+      for (let i = 1; i < totalMemories; i += 1) {
+        const line = document.getElementById(`line-${i}`);
+        if (!line) {
+          continue;
+        }
+        if (unlocked.has(i) && unlocked.has(i + 1)) {
+          line.classList.add('visible');
+        } else {
+          line.classList.remove('visible');
+        }
+      }
+    }
+
+    function openMemory(id) {
+      const memory = memories[id];
+      if (!memory) {
+        return;
+      }
+
+      currentMemoryId = id;
+      unlocked.add(id);
+
+      memoryKicker.textContent = memory.kicker;
+      memoryTitle.textContent = memory.title;
+      memoryText.textContent = memory.text;
+
+      resetMedia();
+      setPhoto(memory);
+      setAudio(memory);
+      setVideo(memory);
+
+      markVisited(id);
+      revealAvailableStars();
+      updateProgress();
+      revealLines();
+      memoryModalBackdrop.classList.add('show');
+
+      if (unlocked.size === totalMemories) {
+        hintText.textContent = 'The constellation is complete.';
+      }
+    }
+
+    function closeMemory() {
+      resetMedia();
+      memoryModalBackdrop.classList.remove('show');
+      if (unlocked.size === totalMemories) {
+        window.setTimeout(() => {
+          finalBackdrop.classList.add('show');
+        }, 350);
+      }
+    }
+
+    function restartExperience() {
+      unlocked.clear();
+      currentMemoryId = null;
+      stars.forEach((star) => {
+        star.classList.remove('visited');
+        if (Number(star.dataset.id) !== 1) {
+          star.classList.add('locked');
+        }
+      });
+      document.querySelectorAll('.line').forEach((line) => {
+        line.classList.remove('visible');
+      });
+      finalBackdrop.classList.remove('show');
+      memoryModalBackdrop.classList.remove('show');
+      resetMedia();
+      revealAvailableStars();
+      updateProgress();
+    }
+
+    startBtn.addEventListener('click', () => {
+      openingScreen.classList.remove('active');
+      mapScreen.classList.add('active');
+      revealAvailableStars();
+      updateProgress();
+    });
+
+    stars.forEach((star) => {
+      star.addEventListener('click', () => {
+        const id = Number(star.dataset.id);
+        if (star.classList.contains('locked')) {
+          return;
+        }
+        openMemory(id);
+      });
+    });
+
+    closeModalBtn.addEventListener('click', closeMemory);
+    closeMemoryAction.addEventListener('click', closeMemory);
+
+    nextHintBtn.addEventListener('click', () => {
+      if (currentMemoryId === null) {
+        return;
+      }
+      const nextId = Math.min(currentMemoryId + 1, totalMemories);
+      const nextStar = stars.find((star) => Number(star.dataset.id) === nextId);
+      if (nextStar && !nextStar.classList.contains('locked')) {
+        nextStar.focus();
+      }
+    });
+
+    closeFinalBtn.addEventListener('click', () => {
+      finalBackdrop.classList.remove('show');
+    });
+
+    setFinalPhoto();
+
+    restartBtn.addEventListener('click', restartExperience);
+
+    memoryModalBackdrop.addEventListener('click', (event) => {
+      if (event.target === memoryModalBackdrop) {
+        closeMemory();
+      }
+    });
+
+    finalBackdrop.addEventListener('click', (event) => {
+      if (event.target === finalBackdrop) {
+        finalBackdrop.classList.remove('show');
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        if (memoryModalBackdrop.classList.contains('show')) {
+          closeMemory();
+        }
+        finalBackdrop.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>
